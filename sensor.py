@@ -41,13 +41,15 @@ def read_channel(channel):
 
 def get_volts(channel=0):
     v=(read_channel(channel)/1023.0)*3.3
-    print("Channel ", channel, " : %.2f V" % v) 
+    print("Channel ", channel, " : %.2f V" % v)
+    dist = 16.2537 * v**4 - 129.893 * v**3 + 382.268 * v**2 - 512.611 * v + 301.439
+    print("Distance: %.2f cm" % dist)
     return v
 
 def is_in_range(v, i):
     # Threshold for every sensor: probably depends on the location 
     # and have to be tested and adjusted
-    if i == 0 and v > 1.7 and v < 2.5:
+    if i == 0 and v > 0.07 and v < 0.2:
         return True
     #elif i == 0 and v > 0.00:
     #    return True
@@ -98,26 +100,28 @@ if __name__ == "__main__":
         # triggering play to prevent random activations
         if new_in_range and status_in_range:
             
+            print("IN RANGE")
+            
             # record start of sound play for logging
             start = True
             random_val = rand()
         
             if random_val == 1:
-                pygame.mixer.music.load("C:/Users/alana/Documents/Uni/Giraffe Internship/Summer_internship/humming/hum1.mp3")
+                pygame.mixer.music.load("/home/pi/internship/humming/hum1.mp3")
                 pygame.mixer.music.play()
-                update_log(logger, start=start, sensor_data=sensors_in_range)
+                update_log(logger, start=start, sensors_active=sensors_in_range)
                 time.sleep(10)
             
             if random_val == 2:
-                pygame.mixer.music.load("C:/Users/alana/Documents/Uni/Giraffe Internship/Summer_internship/humming/hum2.mp3")
+                pygame.mixer.music.load("/home/pi/internship/humming/hum2.mp3")
                 pygame.mixer.music.play()
-                update_log(logger, start=start, sensor_data=sensors_in_range)
+                update_log(logger, start=start, sensors_active=sensors_in_range)
                 time.sleep(10)
             
             if random_val == 3:
-                pygame.mixer.music.load("C:/Users/alana/Documents/Uni/Giraffe Internship/Summer_internship/humming/hum3.mp3")
+                pygame.mixer.music.load("/home/pi/internship/humming/hum3.mp3")
                 pygame.mixer.music.play()
-                update_log(logger, start=start, sensor_data=sensors_in_range)
+                update_log(logger, start=start, sensors_active=sensors_in_range)
                 time.sleep(10)
                 
             playing = True
