@@ -17,6 +17,7 @@ sys.excepthook = sys.__excepthook__
 
 ##################
 
+
 #Used to choose 1 of 3 audio samples at random
 def rand():
     value = randint(1,3)
@@ -48,8 +49,13 @@ def get_volts(channel=0):
 
 def is_in_range(v, i):
     # Threshold for every sensor: probably depends on the location 
-    # and have to be tested and adjusted
-    if i == 0 and v > 0.07 and v < 0.2:
+    # and have to be tested and adjusted - CURRENTLY SET TO GO OFF 2M-3M
+    # 0cm = 1.4v
+    # 30-50cm = 3.1v
+    # 1.5m = 2.8v
+    # 2m = 2.1v
+    # 3m = 1.7v
+    if i == 0 and v > 1.7 and v < 2.1:
         return True
     #elif i == 0 and v > 0.00:
     #    return True
@@ -77,6 +83,8 @@ if __name__ == "__main__":
     logger = Logger()
     prev_alive_time = datetime.now()
     logger.log_alive()
+    filename = "libcamera-jpeg -o 1.jpg -t 1"
+    count = 1
 
     while True:
         
@@ -101,6 +109,16 @@ if __name__ == "__main__":
         if new_in_range and status_in_range:
             
             print("IN RANGE")
+            
+            #Take photo
+            os.system(filename)
+            print(filename)
+            
+            count += 1
+            filename = list(filename)
+            filename[18] = str(count)
+            filename = "".join(filename)
+            
             
             # record start of sound play for logging
             start = True
