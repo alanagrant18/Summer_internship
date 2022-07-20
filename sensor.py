@@ -5,11 +5,12 @@ import os
 import sys
 import time
 from random import randint
-from datetime import datetime
+from datetime import date, datetime
 import spidev
 from sound_log import Logger
 import pygame
 from time import sleep
+import ordergenerator
 
 pygame.mixer.init()
 current_time = datetime.now()
@@ -17,6 +18,12 @@ sys.excepthook = sys.__excepthook__
 
 ##################
 
+dict = ordergenerator.getDictionary()
+
+mediafile = 'none'
+
+# TODO: combine with the pingtimer..
+mediaUpdateTimer = datetime.now()
 
 #Used to choose 1 of 3 audio samples at random
 def rand():
@@ -67,10 +74,24 @@ def is_in_range(v, i):
 def update_log(logger, start=False, end=False, sensors_active=[]):
     now = datetime.now()
     timestr = now.strftime("%Y-%m-%d %H:%M:%S")
-    data = [timestr, start, end] + sensors_active
+    data = [timestr, start, end] + sensors_active + mediafile
     logger.log_local(data)
 
 
+def update_mediafile(logger):
+  print('Main','Checking date for switchin media')
+  # today must be in '2022-01-01' format: datetime.date.fromisoformat(today)
+  today = date.today().isoformat()
+
+  datesDict = ordergenerator.getDictionary()
+
+  if today in datesDict:
+    media = datesDict[today]
+
+  if mediafile != media:
+    logger.log_system_status('Main', 'Media change: from {} to {}.'.format(globals.mediafile, media))
+    print('Main','Media change: from {} to {}.'.format(globals.mediafile, media))
+    mediafile = media
 
   
 if __name__ == "__main__":
@@ -96,6 +117,12 @@ if __name__ == "__main__":
             logger.log_alive()
             prev_alive_time = now
 
+        if (datetime.now() - mediaUpdateTimer).total_seconds() / 60 > 20: 
+              # check every 20 minutes
+              update_mediafile(logger)
+              mediaUpdateTimer = datetime.now()           
+
+
         # online logging intitated separate from sensor readings, so that if the quota is passed and data accumulated 
         # only locally, the waiting records will be logged as soon as possible whether there is activity going on
         # or not
@@ -119,30 +146,44 @@ if __name__ == "__main__":
             filename[18] = str(count)
             filename = "".join(filename)
             
-            
-            # record start of sound play for logging
-            start = True
-            random_val = rand()
-        
-            if random_val == 1:
-                pygame.mixer.music.load("/home/pi/internship/humming/hum1.mp3")
-                pygame.mixer.music.play()
-                update_log(logger, start=start, sensors_active=sensors_in_range)
-                time.sleep(10)
-            
-            if random_val == 2:
-                pygame.mixer.music.load("/home/pi/internship/humming/hum2.mp3")
-                pygame.mixer.music.play()
-                update_log(logger, start=start, sensors_active=sensors_in_range)
-                time.sleep(10)
-            
-            if random_val == 3:
-                pygame.mixer.music.load("/home/pi/internship/humming/hum3.mp3")
-                pygame.mixer.music.play()
-                update_log(logger, start=start, sensors_active=sensors_in_range)
-                time.sleep(10)
+            if mediafile == 'hum':
+                # record start of sound play for logging
+                start = True
+
                 
-            playing = True
+                random_val = rand()
+            
+                if random_val == 1:
+                    pygame.mixer.music.load("/home/pi/internship/humming/hum1.mp3")
+                    pygame.mixer.music.play()
+                    update_log(logger, start=start, sensors_active=sensors_in_range)
+                    time.sleep(10)
+                
+                if random_val == 2:
+                    pygame.mixer.music.load("/home/pi/internship/humming/hum2.mp3")
+                    pygame.mixer.music.play()
+                    update_log(logger, start=start, sensors_active=sensors_in_range)
+                    time.sleep(10)
+                
+                if random_val == 3:
+                    pygame.mixer.music.load("/home/pi/internship/humming/hum3.mp3")
+                    pygame.mixer.music.play()
+                    update_log(logger, start=start, sensors_active=sensors_in_range)
+                    time.sleep(10)
+                    
+                playing = True
+
+            
+            if mediafile == 'white':
+                pygame.mixer.music.load("/home/pi/internship/humming/whitenoise.mp3")
+                pygame.mixer.music.play()
+                update_log(logger, start=start, sensors_active=sensors_in_range)
+                time.sleep(10)
+
+
+            if mediafile == 'none':
+                update_log(logger, start=start, sensors_active=sensors_in_range)
+                time.sleep(10)
     
             
             
