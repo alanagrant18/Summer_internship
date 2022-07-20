@@ -1,6 +1,6 @@
 #sensor
 
-#!/usr/bin/python
+#!/usr/bin/env python3
 import os
 import sys
 import time
@@ -16,11 +16,8 @@ pygame.mixer.init()
 current_time = datetime.now()
 sys.excepthook = sys.__excepthook__
 
+
 ##################
-
-dict = ordergenerator.getDictionary()
-
-mediafile = 'none'
 
 # TODO: combine with the pingtimer..
 mediaUpdateTimer = datetime.now()
@@ -62,7 +59,7 @@ def is_in_range(v, i):
     # 1.5m = 2.8v
     # 2m = 2.1v
     # 3m = 1.7v
-    if i == 0 and v > 1.7 and v < 2.1:
+    if i == 0 and v > 3 and v < 4:
         return True
     #elif i == 0 and v > 0.00:
     #    return True
@@ -71,14 +68,14 @@ def is_in_range(v, i):
  
 
 # Update local log file
-def update_log(logger, start=False, end=False, sensors_active=[]):
+def update_log(logger, sensors_active=[]):
     now = datetime.now()
     timestr = now.strftime("%Y-%m-%d %H:%M:%S")
-    data = [timestr, start, end] + sensors_active + mediafile
+    data = [timestr] + sensors_active
     logger.log_local(data)
 
 
-def update_mediafile(logger):
+def update_mediafile(mediafile):
   print('Main','Checking date for switchin media')
   # today must be in '2022-01-01' format: datetime.date.fromisoformat(today)
   today = date.today().isoformat()
@@ -89,10 +86,10 @@ def update_mediafile(logger):
     media = datesDict[today]
 
   if mediafile != media:
-    logger.log_system_status('Main', 'Media change: from {} to {}.'.format(globals.mediafile, media))
-    print('Main','Media change: from {} to {}.'.format(globals.mediafile, media))
+    print('Main','Media change: from {} to {}.'.format(mediafile, media))
     mediafile = media
-
+    return mediafile
+ 
   
 if __name__ == "__main__":
     print(os.getpid())
@@ -106,6 +103,8 @@ if __name__ == "__main__":
     logger.log_alive()
     filename = "libcamera-jpeg -o 1.jpg -t 1"
     count = 1
+    mediafile = 'whitenoise'
+
 
     while True:
         
@@ -116,11 +115,26 @@ if __name__ == "__main__":
             print('Log alive!', diff)
             logger.log_alive()
             prev_alive_time = now
-
+            
+        
+        #Switching sound file
         if (datetime.now() - mediaUpdateTimer).total_seconds() / 60 > 20: 
-              # check every 20 minutes
-              update_mediafile(logger)
-              mediaUpdateTimer = datetime.now()           
+        # check every 20 minutes
+        #mediafile = update_mediafile(mediafile)
+            
+            print('Main','Checking date for switchin media')
+            # today must be in '2022-01-01' format: datetime.date.fromisoformat(today)
+            today = date.today().isoformat()
+            datesDict = ordergenerator.getDictionary()
+
+            if today in datesDict:
+                media = datesDict[today]
+
+            if mediafile != media:
+                print('Main','Media change: from {} to {}.'.format(mediafile, media))
+                mediafile = media
+                    
+            mediaUpdateTimer = datetime.now()
 
 
         # online logging intitated separate from sensor readings, so that if the quota is passed and data accumulated 
@@ -131,21 +145,26 @@ if __name__ == "__main__":
         new_in_range = any(sensors_in_range)
 
 
+
         # Require two consecutive sensor readings before
         # triggering play to prevent random activations
         if new_in_range and status_in_range:
             
             print("IN RANGE")
             
+            
             #Take photo
             os.system(filename)
             print(filename)
+            print(mediafile)
             
             count += 1
             filename = list(filename)
             filename[18] = str(count)
             filename = "".join(filename)
             
+            
+            #Playing the sound
             if mediafile == 'hum':
                 # record start of sound play for logging
                 start = True
@@ -156,19 +175,19 @@ if __name__ == "__main__":
                 if random_val == 1:
                     pygame.mixer.music.load("/home/pi/internship/humming/hum1.mp3")
                     pygame.mixer.music.play()
-                    update_log(logger, start=start, sensors_active=sensors_in_range)
+                    update_log(logger, sensors_active=sensors_in_range)
                     time.sleep(10)
                 
                 if random_val == 2:
                     pygame.mixer.music.load("/home/pi/internship/humming/hum2.mp3")
                     pygame.mixer.music.play()
-                    update_log(logger, start=start, sensors_active=sensors_in_range)
+                    update_log(logger, sensors_active=sensors_in_range)
                     time.sleep(10)
                 
                 if random_val == 3:
                     pygame.mixer.music.load("/home/pi/internship/humming/hum3.mp3")
                     pygame.mixer.music.play()
-                    update_log(logger, start=start, sensors_active=sensors_in_range)
+                    update_log(logger, sensors_active=sensors_in_range)
                     time.sleep(10)
                     
                 playing = True
@@ -177,12 +196,12 @@ if __name__ == "__main__":
             if mediafile == 'white':
                 pygame.mixer.music.load("/home/pi/internship/humming/whitenoise.mp3")
                 pygame.mixer.music.play()
-                update_log(logger, start=start, sensors_active=sensors_in_range)
+                update_log(logger, sensors_active=sensors_in_range)
                 time.sleep(10)
 
 
             if mediafile == 'none':
-                update_log(logger, start=start, sensors_active=sensors_in_range)
+                update_log(logger, sensors_active=sensors_in_range)
                 time.sleep(10)
     
             
@@ -191,7 +210,7 @@ if __name__ == "__main__":
             pygame.mixer.music.pause()
             paused = True
             playing = False
-            update_log(logger, end=True, sensors_active=sensors_in_range)
+            update_log(logger, sensors_active=sensors_in_range)
         status_in_range = new_in_range
         time.sleep(0.5)
 
